@@ -1,0 +1,2 @@
+/usr/bin/ar qc libtinygradc.a CMakeFiles/tinygradc.dir/src/tg.c.o
+/usr/bin/ranlib libtinygradc.a
