@@ -1,6 +1,27 @@
 # TinyGrad
 
-Проект по самописному пакету на С11, нормальная дока позже, ридми версии 2
+Сейчас в проекте есть:
+- базовый 2D tensor `float32`
+- `grad` и `requires_grad`
+- arena allocator для временных объектов
+- динамический graph / op-node
+- `tg_backward()` для scalar loss
+- базовые операции:
+  - `tg_add`
+  - `tg_sub`
+  - `tg_mul`
+  - `tg_matmul`
+  - `tg_sum`
+  - `tg_mean`
+
+## Структура
+
+- `include/tg.h` — главный внешний API
+- `src/tensor.c` — tensor API
+- `src/arena.c` — arena allocator
+- `src/autograd.c` — topo sort + backward
+- `src/ops_basic.c` — базовые операции и их backward
+- `src/tg.c` — version string
 
 ## Структура
 - `include/tg.h` - главный внешний API

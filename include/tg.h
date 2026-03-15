@@ -12,6 +12,8 @@ extern "C" {
 #define TG_VERSION_MINOR 1
 #define TG_VERSION_PATCH 0
 
+#define TG_OP_MAX_INPUTS 3
+
 typedef enum tg_status {
     TG_OK = 0,
     TG_ERR_INVALID_ARGUMENT = 1,
@@ -20,6 +22,32 @@ typedef enum tg_status {
 } tg_status;
 
 typedef struct tg_arena tg_arena;
+typedef struct tg_tensor tg_tensor;
+typedef struct tg_op tg_op;
+
+/*
+Backward callback contract
+--------------------------
+- out              : выход операции; out->grad уже содержит dL/d(out)
+- op->inputs[i]    : входы операции
+- callback должен накапливать вклад во входные градиенты через +=
+*/
+typedef void (*tg_backward_fn)(tg_op *op, tg_tensor *out);
+
+/*
+Контекст операции динамического графа.
+Обычно создаётся в arena и привязывается к результирующему tensor через out->op.
+*/
+struct tg_op {
+    tg_tensor *inputs[TG_OP_MAX_INPUTS];
+    int num_inputs;
+    tg_backward_fn backward;
+
+    /* Небольшой generic cache под параметры операции. */
+    int aux_i32[4];
+    float aux_f32[4];
+    void *aux_ptr;
+};
 
 /*
 Базовый 2D tensor float32.
@@ -29,27 +57,26 @@ typedef struct tg_arena tg_arena;
 - grad            : буфер градиента того же размера или NULL
 - rows, cols      : форма 2D
 - requires_grad   : нужно ли хранить/накапливать градиент
+- op              : op-node, породивший tensor; NULL для leaf tensor
 
 Служебные поля владения:
 - owns_data       : tg_tensor_destroy() освобождает data, если true
 - owns_grad       : tg_tensor_destroy() освобождает grad, если true
 - owns_self       : tg_tensor_destroy() освобождает сам объект tensor, если true
-
-Важно:
-пользователь может читать основные поля, но ownership-флаги лучше считать
-внутренними и не менять вручную.
 */
-typedef struct tg_tensor {
+struct tg_tensor {
     float *data;
     float *grad;
     int rows;
     int cols;
     bool requires_grad;
 
+    tg_op *op;
+
     bool owns_data;
     bool owns_grad;
     bool owns_self;
-} tg_tensor;
+};
 
 const char *tg_version_string(void);
 
@@ -58,7 +85,7 @@ const char *tg_version_string(void);
 ----------------
 
 1) Долгоживущий параметр на heap.
-   - tg_tensor          : библиотека / tg_tensor_destroy()
+   - tg_tensor              : библиотека / tg_tensor_destroy()
    - data                   : библиотека / tg_tensor_destroy()
    - grad (если есть)       : библиотека / tg_tensor_destroy()
 */
@@ -66,7 +93,7 @@ tg_tensor *tg_param_create(int rows, int cols, bool requires_grad);
 
 /*
 2) Временный tensor внутри arena.
-   - tg_tensor          : arena
+   - tg_tensor              : arena
    - data                   : arena
    - grad (если есть)       : arena
 
@@ -80,9 +107,9 @@ tg_tensor *tg_tensor_tmp(tg_arena *arena, int rows, int cols, bool requires_grad
 3) Tensor-view поверх внешнего буфера, без владения data.
    Данные НЕ копируются.
 
-   - tg_tensor          : arena
+   - tg_tensor              : arena
    - data                   : внешний код, библиотека не владеет
-   - grad (опционально)       : arena
+   - grad (опционально)     : arena
 
    После tg_arena_reset() или tg_arena_destroy() сам tensor и grad
    становятся недействительными.
@@ -101,6 +128,40 @@ void tg_zero_grad(tg_tensor *tensor);
 
 /* Количество элементов: rows * cols. Для NULL/некорректной формы возвращает 0. */
 size_t tg_numel(const tg_tensor *tensor);
+
+/*
+Низкоуровневый API для op-node
+------------------------------
+Обычно используется реализацией операций.
+*/
+tg_op *tg_op_create(tg_arena *arena, int num_inputs, tg_backward_fn backward);
+tg_status tg_op_set_input(tg_op *op, int index, tg_tensor *input);
+
+/*
+Базовые операции
+----------------
+Все операции:
+- создают output tensor в arena
+- возвращают NULL при некорректных аргументах или OOM
+- создают op-node только если хотя бы один вход requires_grad == true
+
+Поддержка форм:
+- tg_add / tg_sub:
+    * одинаковые формы [R x C] и [R x C]
+    * частичный bias-broadcast: b может быть [1 x C], тогда out = [R x C]
+- tg_mul:
+    * только одинаковые формы
+- tg_matmul:
+    * a: [B x D], b: [D x H] -> out: [B x H]
+- tg_sum / tg_mean:
+    * x: [R x C] -> out: [1 x 1]
+*/
+tg_tensor *tg_add(tg_arena *arena, tg_tensor *a, tg_tensor *b);
+tg_tensor *tg_sub(tg_arena *arena, tg_tensor *a, tg_tensor *b);
+tg_tensor *tg_mul(tg_arena *arena, tg_tensor *a, tg_tensor *b);
+tg_tensor *tg_matmul(tg_arena *arena, tg_tensor *a, tg_tensor *b);
+tg_tensor *tg_sum(tg_arena *arena, tg_tensor *x);
+tg_tensor *tg_mean(tg_arena *arena, tg_tensor *x);
 
 /*
 Совместимость со старым API
@@ -122,11 +183,19 @@ size_t tg_tensor_size(const tg_tensor *tensor);
 float *tg_tensor_data(tg_tensor *tensor);
 const float *tg_tensor_data_const(const tg_tensor *tensor);
 
+/*
+Запуск обратного прохода.
+
+Текущее MVP-предположение:
+- loss должен быть scalar tensor (numel == 1)
+- existing grad buffers не обнуляются автоматически
+- seed: loss->grad[0] = 1.0f
+*/
 tg_status tg_backward(tg_tensor *loss);
 
 /*
-Выделитель областей для временных графических объектов.
-выравнивание должно быть в степени двойки; align == 0 означает выравнивание по умолчанию
+Arena allocator.
+align должен быть степенью двойки; align == 0 означает выравнивание по умолчанию.
 */
 tg_arena *tg_arena_create(size_t initial_bytes);
 void tg_arena_destroy(tg_arena *arena);

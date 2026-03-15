@@ -29,6 +29,8 @@ add_library(tinygradc STATIC
     src/tg.c
     src/tensor.c
     src/arena.c
+    src/autograd.c
+    src/ops_basic.c
 )
 
 target_include_directories(tinygradc
