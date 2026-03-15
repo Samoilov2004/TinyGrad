@@ -60,6 +60,20 @@ static tg_tensor *tg_tensor_init(
     tensor->rows = rows;
     tensor->cols = cols;
     tensor->requires_grad = requires_grad;
+
+    /*
+    Leaf tensor по умолчанию не имеет op.
+    Если tensor является результатом операции, out->op потом заполнит код op.
+    */
+    tensor->op = NULL;
+
+    /*
+    Optimizer state живёт только у heap-параметров по необходимости,
+    но безопаснее всегда явно инициализировать в NULL.
+    */
+    tensor->opt1 = NULL;
+    tensor->opt2 = NULL;
+
     tensor->owns_data = owns_data;
     tensor->owns_grad = owns_grad;
     tensor->owns_self = owns_self;
@@ -292,6 +306,15 @@ void tg_tensor_destroy(tg_tensor *tensor) {
     if (tensor == NULL) {
         return;
     }
+
+    /*
+    Optimizer state всегда heap-allocated для долгоживущих параметров.
+    Для arena tensors тут обычно NULL; free(NULL) безопасен.
+    */
+    free(tensor->opt1);
+    free(tensor->opt2);
+    tensor->opt1 = NULL;
+    tensor->opt2 = NULL;
 
     if (tensor->owns_grad) {
         free(tensor->grad);

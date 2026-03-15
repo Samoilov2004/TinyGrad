@@ -26,6 +26,16 @@ typedef struct tg_tensor tg_tensor;
 typedef struct tg_op tg_op;
 
 /*
+Простой список параметров модели.
+Хранит только массив указателей на tg_tensor, сами tensor не освобождает.
+*/
+typedef struct tg_param_list {
+    tg_tensor **items;
+    int count;
+    int capacity;
+} tg_param_list;
+
+/*
 Backward callback contract
 --------------------------
 - out              : выход операции; out->grad уже содержит dL/d(out)
@@ -59,6 +69,10 @@ struct tg_op {
 - requires_grad   : нужно ли хранить/накапливать градиент
 - op              : op-node, породивший tensor; NULL для leaf tensor
 
+Optimizer state:
+- opt1            : опциональный state-buffer оптимизатора (heap), напр. velocity или m
+- opt2            : опциональный state-buffer оптимизатора (heap), напр. v
+
 Служебные поля владения:
 - owns_data       : tg_tensor_destroy() освобождает data, если true
 - owns_grad       : tg_tensor_destroy() освобождает grad, если true
@@ -73,6 +87,9 @@ struct tg_tensor {
 
     tg_op *op;
 
+    float *opt1;
+    float *opt2;
+
     bool owns_data;
     bool owns_grad;
     bool owns_self;
@@ -85,9 +102,10 @@ const char *tg_version_string(void);
 ----------------
 
 1) Долгоживущий параметр на heap.
-   - tg_tensor              : библиотека / tg_tensor_destroy()
-   - data                   : библиотека / tg_tensor_destroy()
-   - grad (если есть)       : библиотека / tg_tensor_destroy()
+   - tg_tensor              : библиотека / tg_tensor_destroy() или tg_param_free()
+   - data                   : библиотека / tg_tensor_destroy() или tg_param_free()
+   - grad (если есть)       : библиотека / tg_tensor_destroy() или tg_param_free()
+   - opt1/opt2              : библиотека / tg_param_free()
 */
 tg_tensor *tg_param_create(int rows, int cols, bool requires_grad);
 
@@ -164,6 +182,83 @@ tg_tensor *tg_sum(tg_arena *arena, tg_tensor *x);
 tg_tensor *tg_mean(tg_arena *arena, tg_tensor *x);
 
 /*
+Нелинейности
+------------
+Все операции:
+- x: [R x C] -> out: [R x C]
+- backward использует:
+    * tg_relu     : output tensor (mask через out->data > 0)
+    * tg_sigmoid  : output tensor, s = out->data
+    * tg_tanh     : output tensor, t = out->data
+*/
+tg_tensor *tg_relu(tg_arena *arena, tg_tensor *x);
+tg_tensor *tg_sigmoid(tg_arena *arena, tg_tensor *x);
+tg_tensor *tg_tanh(tg_arena *arena, tg_tensor *x);
+
+/*
+Loss функции
+------------
+Target tensors трактуются как константы:
+градиенты накапливаются только в pred/logits, но не в target.
+
+- tg_mse:
+    * pred, target: одинаковая форма [R x C]
+    * returns: scalar [1 x 1]
+
+- tg_bce_with_logits:
+    * logits, target: одинаковая форма [R x C]
+    * returns: scalar [1 x 1]
+
+- tg_softmax_cross_entropy:
+    * logits: [B x C]
+    * target_onehot: [B x C]
+    * returns: scalar [1 x 1]
+*/
+tg_tensor *tg_mse(tg_arena *arena, tg_tensor *pred, tg_tensor *target);
+tg_tensor *tg_bce_with_logits(tg_arena *arena, tg_tensor *logits, tg_tensor *target);
+tg_tensor *tg_softmax_cross_entropy(
+    tg_arena *arena,
+    tg_tensor *logits,
+    tg_tensor *target_onehot
+);
+
+/*
+Параметры и оптимизаторы
+------------------------
+Важно:
+- в список параметров должны попадать только heap-параметры, а не временные arena tensors
+- tg_param_list_push() это проверяет
+- tg_param_free() освобождает optimizer state + сам tensor
+
+Optimizer state convention:
+- SGD + momentum:
+    opt1 = velocity
+- Adam:
+    opt1 = m
+    opt2 = v
+*/
+void tg_param_free(tg_tensor *tensor);
+
+void tg_params_zero_grad(tg_tensor **params, int n);
+
+void tg_param_list_init(tg_param_list *list);
+void tg_param_list_destroy(tg_param_list *list);
+tg_status tg_param_list_reserve(tg_param_list *list, int capacity);
+tg_status tg_param_list_push(tg_param_list *list, tg_tensor *param);
+void tg_param_list_zero_grad(const tg_param_list *list);
+
+void tg_sgd_step(tg_tensor **params, int n, float lr, float momentum);
+void tg_adam_step(
+    tg_tensor **params,
+    int n,
+    float lr,
+    float beta1,
+    float beta2,
+    float eps,
+    int t
+);
+
+/*
 Совместимость со старым API
 ---------------------------
 Создаёт heap-tensor формы 1 x size без grad.
@@ -174,6 +269,10 @@ tg_tensor *tg_tensor_create(size_t size);
 Освобождает только те части tensor, которыми он владеет.
 Для arena-backed tensor это фактически no-op.
 Вроде как безопасно для NULL.
+
+Примечание:
+- для trainable heap parameters лучше использовать tg_param_free(),
+  так как он также чистит optimizer state.
 */
 void tg_tensor_destroy(tg_tensor *tensor);
 

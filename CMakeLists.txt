@@ -31,6 +31,9 @@ add_library(tinygradc STATIC
     src/arena.c
     src/autograd.c
     src/ops_basic.c
+    src/ops_nn.c
+    src/ops_loss.c
+    src/optim.c
 )
 
 target_include_directories(tinygradc
@@ -57,6 +60,12 @@ add_executable(gradcheck
 )
 target_link_libraries(gradcheck PRIVATE tinygradc)
 tg_enable_warnings(gradcheck)
+
+add_executable(xor_mlp
+    examples/xor_mlp.c
+)
+target_link_libraries(xor_mlp PRIVATE tinygradc)
+tg_enable_warnings(xor_mlp)
 
 include(CTest)
 if(BUILD_TESTING)
