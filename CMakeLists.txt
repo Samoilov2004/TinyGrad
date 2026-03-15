@@ -27,6 +27,7 @@ endfunction()
 
 add_library(tinygradc STATIC
     src/tg.c
+    src/tensor.c
     src/arena.c
 )
 
