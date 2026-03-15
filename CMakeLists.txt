@@ -1,27 +1,33 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(tinygradc VERSION 0.1.0 LANGUAGES C)
-
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
-endif()
+project(tinygradc VERSION 0.2.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
-set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo" "MinSizeRel")
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+endif()
 
-function(tg_enable_warnings target)
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+    Debug
+    Release
+    RelWithDebInfo
+    MinSizeRel
+)
+
+function(tg_enable_warnings target_name)
     if(MSVC)
-        target_compile_options(${target} PRIVATE /W4 /permissive-)
+        target_compile_options(${target_name} PRIVATE /W4 /permissive-)
     else()
-        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+        target_compile_options(${target_name} PRIVATE -Wall -Wextra -Wpedantic)
     endif()
 endfunction()
 
 add_library(tinygradc STATIC
     src/tg.c
+    src/arena.c
 )
 
 target_include_directories(tinygradc
@@ -34,25 +40,22 @@ tg_enable_warnings(tinygradc)
 add_executable(xor
     examples/xor.c
 )
+target_link_libraries(xor PRIVATE tinygradc)
+tg_enable_warnings(xor)
 
 add_executable(logreg_csv
     examples/logreg_csv.c
 )
+target_link_libraries(logreg_csv PRIVATE tinygradc)
+tg_enable_warnings(logreg_csv)
 
 add_executable(gradcheck
     tests/gradcheck.c
 )
-
-target_link_libraries(xor PRIVATE tinygradc)
-target_link_libraries(logreg_csv PRIVATE tinygradc)
 target_link_libraries(gradcheck PRIVATE tinygradc)
-
-tg_enable_warnings(xor)
-tg_enable_warnings(logreg_csv)
 tg_enable_warnings(gradcheck)
 
 include(CTest)
-
 if(BUILD_TESTING)
     add_test(NAME gradcheck COMMAND gradcheck)
 endif()
