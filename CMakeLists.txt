@@ -25,7 +25,7 @@ function(tg_enable_warnings target_name)
     endif()
 endfunction()
 
-add_library(tinygradc STATIC
+add_library(tinygradc SHARED
     src/tg.c
     src/tensor.c
     src/arena.c
@@ -35,6 +35,12 @@ add_library(tinygradc STATIC
     src/ops_loss.c
     src/optim.c
 )
+
+target_include_directories(tinygradc PUBLIC include)
+
+if(NOT MSVC)
+    target_link_libraries(tinygradc PUBLIC m)
+endif()
 
 target_include_directories(tinygradc
     PUBLIC

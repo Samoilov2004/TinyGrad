@@ -1,30 +1,13 @@
 # TinyGrad
+`tinygradc` — это маленькая библиотека на C для работы с тензорами, вычисления градиентов и обучения простых нейросетей. Проект может быть интересен тем, кому интересно, как условный PyTorch работает под капотом, так что излишние оптимизации были опущены.
 
-Сейчас в проекте есть:
-- базовый 2D tensor `float32`
-- `grad` и `requires_grad`
-- arena allocator для временных объектов
-- динамический graph / op-node
-- `tg_backward()` для scalar loss
-- базовые операции:
-  - `tg_add`
-  - `tg_sub`
-  - `tg_mul`
-  - `tg_matmul`
-  - `tg_sum`
-  - `tg_mean`
-
-## Структура
-
-- `include/tg.h` — главный внешний API
-- `src/tensor.c` — tensor API
-- `src/arena.c` — arena allocator
-- `src/autograd.c` — topo sort + backward
-- `src/ops_basic.c` — базовые операции и их backward
-- `src/tg.c` — version string
-
-## Структура
-- `include/tg.h` - главный внешний API
+Сейчас уже реализовано:
+- тензоры `float32`
+- автоматическое вычисление градиентов
+- набор базовых операций
+- функции потерь
+- оптимизаторы
+- примеры обучения
 
 ## Сборка
 #### Дебаг
@@ -43,6 +26,7 @@ cmake --build build
 #### Примеры
 ```Bash
 ./build/xor
+./build/xor_mlp
 ./build/logreg_csv path/to/data.csv
 ```
 
@@ -51,3 +35,26 @@ cmake --build build
 ./build/gradcheck
 ctest --test-dir build --output-on-failure
 ```
+
+## Как попробовать?
+Папка `PythonUsage` будет пополняться, будут примеры использования из под питона.
+На данный момент уже есть
+- `example1.ipynb`
+
+## Структура кода
+- `include/tg.h` - главный внешний API
+- `src/tg.c` - служебные штуки, например версия проекта
+- `src/tensor.c` - создание, удаление, размер, доступ к данным, работа с grad для тензоров
+- `src/arena.c` - временная память для промежуточных объектов во время вычислений
+- `src/autograd.c` - код для backward и работы вычислительного графа
+- `src/ops_basic.c` - Базовые математические операции:
+  add
+  sub
+  mul
+  matmul
+  sum
+  mean
+- `src/ops_nn.c` - реализации `relu`, `sigmoid`, `tanh`
+- `src/ops_loss.c` - реализация `SGD`, `Adam`, `zeroing gradients`, `parameter list`
+- `examples/` - примеры использования
+- `tests/gradcheck.c` - тесты для градиентов
