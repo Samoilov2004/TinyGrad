@@ -37,6 +37,9 @@ ctest --test-dir build --output-on-failure
 ```
 
 ## Как попробовать?
+```Bash
+pip install git+https://github.com/Samoilov2004/TinyGrad.git
+```
 Папка `PythonUsage` будет пополняться, будут примеры использования из под питона.
 На данный момент уже есть
 - `example1.ipynb`
@@ -48,14 +51,15 @@ ctest --test-dir build --output-on-failure
 - `src/arena.c` - временная память для промежуточных объектов во время вычислений
 - `src/autograd.c` - код для backward и работы вычислительного графа
 - `src/ops_basic.c` - Базовые математические операции:
+  - add
+  - sub
+  - mul
+  - matmul
+  - sum
+  - mean
 - `src/nn_layer.c` - миниамальный nn-слой
 - `src/data.c` - DataLoader
-  add
-  sub
-  mul
-  matmul
-  sum
-  mean
+- `src/train_utils.c` - L2 и clipping
 - `src/ops_nn.c` - реализации `relu`, `sigmoid`, `tanh`
 - `src/ops_loss.c` - реализация `SGD`, `Adam`, `zeroing gradients`, `parameter list`
 - `src/io.c` - работа с весами модели
