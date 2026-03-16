@@ -37,12 +37,12 @@ ctest --test-dir build --output-on-failure
 ```
 
 ## Как попробовать?
+Проект подготовлен под использование из под питона, скачать можно так:
 ```Bash
 pip install git+https://github.com/Samoilov2004/TinyGrad.git
 ```
-Папка `PythonUsage` будет пополняться, будут примеры использования из под питона.
-На данный момент уже есть
-- `example1.ipynb`
+
+В папке `PythonUsage` лежат примеры использования из под питона.
 
 ## Структура кода
 - `include/tg.h` - главный внешний API
