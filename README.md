@@ -39,7 +39,15 @@ ctest --test-dir build --output-on-failure
 ## Как попробовать?
 Проект подготовлен под использование из под питона, скачать можно так:
 ```Bash
+python3 -m venv tinygradvenv
+source tinygradvenv/bin/activate
+
 pip install git+https://github.com/Samoilov2004/TinyGrad.git
+```
+
+Затем можно проверить, что все нормально установилось
+```Bash
+pip list
 ```
 
 В папке `PythonUsage` лежат примеры использования из под питона.
