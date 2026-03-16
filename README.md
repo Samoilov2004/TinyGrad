@@ -9,7 +9,46 @@
 - оптимизаторы
 - примеры обучения
 
-## Сборка
+## Как попробовать?
+Проект подготовлен под использование из под питона, скачать можно так:
+```Bash
+python3 -m venv tinygradvenv
+source tinygradvenv/bin/activate
+
+pip install git+https://github.com/Samoilov2004/TinyGrad.git
+```
+
+Затем можно проверить, что все нормально установилось
+```Bash
+pip list
+```
+
+В папке `PythonUsage` лежат примеры использования из под питона.
+- `example_digits_mlp.py` - обучение простой сети для угадывания цифр
+
+## Структура кода
+- `include/tg.h` - главный внешний API
+- `src/tg.c` - служебные штуки, например версия проекта
+- `src/tensor.c` - создание, удаление, размер, доступ к данным, работа с grad для тензоров
+- `src/arena.c` - временная память для промежуточных объектов во время вычислений
+- `src/autograd.c` - код для backward и работы вычислительного графа
+- `src/ops_basic.c` - Базовые математические операции:
+  - add
+  - sub
+  - mul
+  - matmul
+  - sum
+  - mean
+- `src/nn_layer.c` - миниамальный nn-слой
+- `src/data.c` - DataLoader
+- `src/train_utils.c` - L2 и clipping
+- `src/ops_nn.c` - реализации `relu`, `sigmoid`, `tanh`
+- `src/ops_loss.c` - реализация `SGD`, `Adam`, `zeroing gradients`, `parameter list`
+- `src/io.c` - работа с весами модели
+- `examples/` - примеры использования
+- `tests/gradcheck.c` - тесты для градиентов
+
+## Техническая информация
 #### Дебаг
 ```Bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
@@ -36,54 +75,8 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-## Как попробовать?
-Проект подготовлен под использование из под питона, скачать можно так:
-```Bash
-python3 -m venv tinygradvenv
-source tinygradvenv/bin/activate
-
-pip install git+https://github.com/Samoilov2004/TinyGrad.git
-```
-
-Затем можно проверить, что все нормально установилось
-```Bash
-pip list
-```
-
-В папке `PythonUsage` лежат примеры использования из под питона.
-
-## Структура кода
-- `include/tg.h` - главный внешний API
-- `src/tg.c` - служебные штуки, например версия проекта
-- `src/tensor.c` - создание, удаление, размер, доступ к данным, работа с grad для тензоров
-- `src/arena.c` - временная память для промежуточных объектов во время вычислений
-- `src/autograd.c` - код для backward и работы вычислительного графа
-- `src/ops_basic.c` - Базовые математические операции:
-  - add
-  - sub
-  - mul
-  - matmul
-  - sum
-  - mean
-- `src/nn_layer.c` - миниамальный nn-слой
-- `src/data.c` - DataLoader
-- `src/train_utils.c` - L2 и clipping
-- `src/ops_nn.c` - реализации `relu`, `sigmoid`, `tanh`
-- `src/ops_loss.c` - реализация `SGD`, `Adam`, `zeroing gradients`, `parameter list`
-- `src/io.c` - работа с весами модели
-- `examples/` - примеры использования
-- `tests/gradcheck.c` - тесты для градиентов
-
 ## Что предстоит сделать
-### Питон Юзабилити
-- [ ] Дописать нормальные примеры из под питона
-- [ ] доработать обертку питонистую в отдельный файл
-- [x] Реализовать сохранение / загрузку весов
-- [ ] Реализовать установку через pip install и ссылка на гитхаб
-
 ### Удобство архитектурное
-- [ ] Минимальный nn слой
-- [ ] Мини-DataLoader для таблички
 - [ ] Регуляризация и стабилизация обучения
 - [ ] Сериализация
 
