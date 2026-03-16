@@ -1,3 +1,3 @@
-from .core import TinyGrad, TensorRef
+from .core import TinyGradC, TensorRef
 
-__all__ = ["TinyGrad", "TensorRef"]
+__all__ = ["TinyGradC", "TensorRef"]
