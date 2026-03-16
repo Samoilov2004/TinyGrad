@@ -18,10 +18,7 @@ source tinygradvenv/bin/activate
 pip install git+https://github.com/Samoilov2004/TinyGrad.git
 ```
 
-Затем можно проверить, что все нормально установилось
-```Bash
-pip list
-```
+Для API также написана [документация из docstrings](docs/python_api.md).
 
 В папке `PythonUsage` лежат примеры использования из под питона.
 - `example_digits_mlp.py` - обучение простой сети для угадывания цифр
