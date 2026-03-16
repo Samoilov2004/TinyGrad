@@ -37,7 +37,6 @@ class CMakeBuildPy(build_py):
 
         lib_path = lib_candidates[0]
 
-        # Копируем библиотеку не в исходники, а в build output пакета
         pkg_build_dir = Path(self.build_lib) / "tinygradc"
         pkg_build_dir.mkdir(parents=True, exist_ok=True)
 
