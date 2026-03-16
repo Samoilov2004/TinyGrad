@@ -48,6 +48,8 @@ ctest --test-dir build --output-on-failure
 - `src/arena.c` - временная память для промежуточных объектов во время вычислений
 - `src/autograd.c` - код для backward и работы вычислительного графа
 - `src/ops_basic.c` - Базовые математические операции:
+- `src/nn_layer.c` - миниамальный nn-слой
+- `src/data.c` - DataLoader
   add
   sub
   mul
@@ -56,6 +58,7 @@ ctest --test-dir build --output-on-failure
   mean
 - `src/ops_nn.c` - реализации `relu`, `sigmoid`, `tanh`
 - `src/ops_loss.c` - реализация `SGD`, `Adam`, `zeroing gradients`, `parameter list`
+- `src/io.c` - работа с весами модели
 - `examples/` - примеры использования
 - `tests/gradcheck.c` - тесты для градиентов
 
@@ -63,7 +66,7 @@ ctest --test-dir build --output-on-failure
 ### Питон Юзабилити
 - [ ] Дописать нормальные примеры из под питона
 - [ ] доработать обертку питонистую в отдельный файл
-- [ ] Реализовать сохранение / загрузку весов
+- [x] Реализовать сохранение / загрузку весов
 - [ ] Реализовать установку через pip install и ссылка на гитхаб
 
 ### Удобство архитектурное

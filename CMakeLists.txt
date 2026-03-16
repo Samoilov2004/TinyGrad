@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(tinygradc VERSION 0.2.0 LANGUAGES C)
+project(tinygradc VERSION 0.3.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -34,6 +34,10 @@ add_library(tinygradc SHARED
     src/ops_nn.c
     src/ops_loss.c
     src/optim.c
+    src/io.c
+    src/nn_layers.c
+    src/data.c
+    src/train_utils.c
 )
 
 target_include_directories(tinygradc PUBLIC include)

@@ -35,6 +35,110 @@ typedef struct tg_param_list {
     int capacity;
 } tg_param_list;
 
+typedef struct tg_tabular_dataset {
+    const float *x;   /* [rows x x_cols] */
+    const float *y;   /* [rows x y_cols], может быть NULL для inference-only */
+    int rows;
+    int x_cols;
+    int y_cols;
+} tg_tabular_dataset;
+
+typedef struct tg_dataloader {
+    tg_tabular_dataset dataset;
+    int batch_size;
+    bool shuffle;
+
+    int *indices;
+    int cursor;
+    unsigned int rng_state;
+} tg_dataloader;
+
+/*
+Минимальный linear helper:
+- x:      [B x IN]
+- weight: [IN x OUT]
+- bias:   NULL или [1 x OUT]
+- out:    [B x OUT]
+
+Эквивалент:
+    tg_add(arena, tg_matmul(arena, x, weight), bias)
+если bias != NULL
+*/
+tg_tensor *tg_linear(
+    tg_arena *arena,
+    tg_tensor *x,
+    tg_tensor *weight,
+    tg_tensor *bias
+);
+
+/*
+Сохранение / загрузка параметров модели.
+
+Формат:
+- простой бинарный формат tinygradc v1
+- хранит число параметров, shape и raw float32 data
+- рассчитан на загрузку в уже созданные параметры той же формы
+
+После загрузки:
+- grad обнуляется
+- optimizer state (opt1/opt2), если есть, тоже обнуляется
+*/
+tg_status tg_params_save(const char *path, tg_tensor **params, int n);
+tg_status tg_params_load(const char *path, tg_tensor **params, int n);
+
+/*
+Mini DataLoader для табличных данных.
+
+dataset.x: [rows x x_cols]
+dataset.y: [rows x y_cols] или NULL
+
+tg_dataloader_next():
+- создаёт out_x и out_y как arena-backed tensors
+- out_y может быть NULL, если dataset.y == NULL
+*/
+tg_status tg_dataloader_init(
+    tg_dataloader *loader,
+    const float *x,
+    const float *y,
+    int rows,
+    int x_cols,
+    int y_cols,
+    int batch_size,
+    bool shuffle
+);
+
+void tg_dataloader_reset(tg_dataloader *loader, unsigned int seed);
+bool tg_dataloader_next(
+    tg_dataloader *loader,
+    tg_arena *arena,
+    tg_tensor **out_x,
+    tg_tensor **out_y
+);
+int tg_dataloader_num_batches(const tg_dataloader *loader);
+void tg_dataloader_destroy(tg_dataloader *loader);
+
+/*
+Training utilities
+------------------
+- tg_add_l2_grad:
+    добавляет к grad вклад weight decay:
+        grad += weight_decay * param
+    Это эквивалентно L2-регуляризации в форме градиентного штрафа.
+
+- tg_grad_global_norm:
+    возвращает глобальную L2-норму всех градиентов
+
+- tg_clip_grad_norm:
+    если global_norm > max_norm, масштабирует все grad
+
+- tg_clip_grad_value:
+    покомпонентно clamp'ит grad в диапазон [-clip_value, clip_value]
+*/
+void tg_add_l2_grad(tg_tensor **params, int n, float weight_decay);
+float tg_grad_global_norm(tg_tensor **params, int n);
+void tg_clip_grad_norm(tg_tensor **params, int n, float max_norm);
+void tg_clip_grad_value(tg_tensor **params, int n, float clip_value);
+
 /*
 Backward callback contract
 --------------------------
