@@ -12,7 +12,8 @@ class CMakeBuildPy(build_py):
         build_dir = root / "build_python"
         pkg_dir = root / "python" / "tinygradc"
 
-        build_dir.mkdir(exist_ok=True)
+        build_dir.mkdir(parents=True, exist_ok=True)
+        pkg_dir.mkdir(parents=True, exist_ok=True)
 
         subprocess.check_call([
             "cmake",

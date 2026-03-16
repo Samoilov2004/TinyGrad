@@ -53,3 +53,25 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# macOS
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+
+# Virtual envs
+venv/
+.venv/
+tiny_venv/
+
+# Build dirs
+build/
+build_python/
+dist/
+*.egg-info/

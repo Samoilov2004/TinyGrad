@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,9 +8,6 @@ version = "0.1.0"
 description = "Small C11 tensor/autograd runtime with a minimal Python wrapper"
 readme = "README.md"
 requires-python = ">=3.8"
-authors = [
-  { name = "tinygradc" }
-]
 
 [tool.setuptools]
 package-dir = {"" = "python"}
